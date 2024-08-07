@@ -1,6 +1,6 @@
 # ***** IMPORTS *****
 import time
-import customtkinter
+import customtkinter as ctk
 import pygame
 import random
 
@@ -28,12 +28,10 @@ NOISE_PATH_DICT = {
     NOISE_LIST[3]: ".\\audio\\brown-noise.mp3"
 }
 
-
-
-motivation_thought_time = 50 
-focus_session_1_time = 27     # 45 min
-rest_time = 3                 # 5 min
-focus_session_2_time = 27     # 45 min
+motivation_thought_time = 1#50 
+focus_session_1_time = 1#45 * 60     # 45 min
+rest_time = 1#5* 60                  # 5 min
+focus_session_2_time = 1#45 * 60     # 45 min
 
 FINISH_SOUND_PATH = ".\\audio\\jingle3_finish.mp3"
 START_SOUND_PATH = ".\\audio\\jingle2_start.mp3"
@@ -51,199 +49,191 @@ TIMER_SECTIONS_DATA_LIST = [
     ("2nd focus session", focus_session_2_time, START_SOUND_PATH) 
 ]
 
-
-# seconds_total indicates number of seconds timer should count
-seconds_total = 0
-
-# this variable is used to iterate over sections
-i = 0
-
-# default volume value 
-volume = 0.5
-
-# indicates if timer is running or not
-timer_running = False
-
-# initiating sound mixer and default noise Sound object
-pygame.mixer.init()
-noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[NOISE_LIST[0]])
-
-# Channel objects used to control noise   
-channel1 = pygame.mixer.Channel(1)
-
-#  and end section sound separately
-channel2 = pygame.mixer.Channel(2)
-
-# ***** FUNCTIONS *****
-
-
-# change_noise is opening sound file choosen in option_noise.
-def change_noise(choice):                        
-    global noise_sound 
-
-    if pygame.mixer.get_busy():
-        stop_playback()
-        noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[choice])
-        noise_sound.set_volume(volume)
-        start_playback()
-    else:
-        noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[choice])
-        noise_sound.set_volume(volume)
-
-
-# Sets noise volume according to volume_slider.            
-def volume_control(volume_sl):      
-    global volume
-    volume = volume_sl                 
-    noise_sound.set_volume(volume_sl)
-
-# Starts playing choosen noise sound.
-def start_playback():
-    print("start_playback;")
-    channel1.play(noise_sound, loops=-1) 
-
-# Stops playing choosen noise sound. 
-def stop_playback():
-    print("stop_playback;")
-    channel1.stop()
-
-# Plays given end section sound                              
-def end_section_sound(path):
-    end_section_sound = pygame.mixer.Sound(file=path)
-    channel2.play(end_section_sound)
-
-# starts updating timer status
-# used after pause, continues counting
-def start():                           
-    global timer_running
-    if not timer_running:
-        update_timer()
-        timer_running = True
-
-# pauses timer
-def pause():
-    global timer_running
-    if timer_running:
-        label_timer.after_cancel(update_time) 
-        timer_running = False
-
-# This function changes displayed text of the labels (label_timer, label)
-#    - updates timer display in label_timer
-#    - updates text in label_header with section name/comment
-#    - plays end section sound
-#    - stops noise sound in Rest section
-# All based on data from TIMER_SECTION_DATA_LIST.  
-def update_timer():                 
-    global seconds_total, i
-    
-    # When changing sections, loading another title and timer  
-    if seconds_total <= 0 and i < len(TIMER_SECTIONS_DATA_LIST):
-        end_section_sound(TIMER_SECTIONS_DATA_LIST[i][2])
-        seconds_total = TIMER_SECTIONS_DATA_LIST[i][1]
-        section_name = TIMER_SECTIONS_DATA_LIST[i][0]
-
-        # Stop sound while rest section and play again while 2nd focus session.
-        if pygame.mixer.get_busy():
-            if section_name == TIMER_SECTIONS_DATA_LIST[2][0]: # Rest                
-                channel1.pause()
-            elif section_name == TIMER_SECTIONS_DATA_LIST[3][0]: # 2nd focus session
-                channel1.unpause()
-
-        label_header.configure(text=section_name)
-        i += 1
-
-    # End of session
-    if seconds_total <= 0:
-        channel1.stop()
-        end_section_sound(FINISH_SOUND_PATH)
-        reward_message = random.choice(END_MESSAGES_LIST)
-        label_timer.configure(text=reward_message, font=('Arial', 35))
-        # leave only ending text in the frame
-        label_header.pack_forget()
-        play_button.pack_forget()
-        stop_button.pack_forget()
-        volume_slider.pack_forget()
-        volume_control_label.pack_forget()
-        option_noise.pack_forget()
-        button_start.pack_forget()
-        button_pause.pack_forget()
-
-    # Updating timer 
-    else:
-        mins, secs = divmod(seconds_total, 60)
-        hs, mins = divmod(mins, 60)
-        timeformat = '{:02d}:{:02d}:{:02d}'.format(hs, mins, secs)
-        label_timer.configure(text=timeformat)
-        seconds_total -= 1
-
-        # this global variable will be used in pause and start timer
-        global update_time
-        update_time = label_timer.after(1000, update_timer)
-
+root = ctk.CTk()
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
          
-# ***** WIDGETS *****
-customtkinter.set_appearance_mode("dark")
-customtkinter.set_default_color_theme("blue")
 
-root = customtkinter.CTk()
+class MainApp:
+    # initiating sound mixer
+    pygame.mixer.init()
 
-root.geometry("700x500")
-
-frame = customtkinter.CTkFrame(master=root)
-frame.pack(pady=20, padx=60, fill="both", expand=True)
-# Title label:
-label_header = customtkinter.CTkLabel(master=frame, text="Press START")
-label_header.pack(pady=12, padx=10)
-
-# Label that displays timer:
-
-label_timer = customtkinter.CTkLabel(master=frame, font=('Arial', 20), text="00:00:00")
-label_timer.pack(pady=12, padx=10)
-
-# Start and Pause buttons:
-
-button_start = customtkinter.CTkButton(master=frame, text="START", command=start)
-button_start.pack(pady=5, padx=10)
-
-button_pause = customtkinter.CTkButton(master=frame, text="PAUSE", command=pause)
-button_pause.pack(pady=5, padx=10)
-
-# You can choose sound in background to your work from option menu:
-#     - binaural beats
-#     - white noise
-#     - pink noise
-#     - brown noise    
-checked_noise = customtkinter.StringVar(value=NOISE_LIST[0])
-option_noise = customtkinter.CTkOptionMenu(frame, values=NOISE_LIST, variable=checked_noise, command=change_noise)
-option_noise.pack(pady=20, padx=15)
-option_noise.set("Choose background noise")
+    def __init__(self, root): 
+    # ***** INSTANCE VARIABLES *****
+        
+        self.root = root
+        self.root.title("Grind Timer")
+        self.root.geometry("700x500")
+        # Channel objects used to control noise   
+        self.channel1 = pygame.mixer.Channel(1)
+        # and end section sound separately
+        self.channel2 = pygame.mixer.Channel(2)
+        self.noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[NOISE_LIST[0]])
+        # default volume value 
+        self.volume = 0.5
+        # indicates if timer is running or not
+        self.timer_running = False
+        # seconds_total indicates number of seconds timer should count
+        self.seconds_total = 0
+        # this variable is used to iterate over sections
+        self.i = 0
+        self.update_time = lambda *args, **kwargs: None
 
 
-# Audio control slider:
-volume_control_label = customtkinter.CTkLabel(master=frame, text="Volume", font=("Arial", 12))
-volume_control_label.pack(pady=5)
+    # ***** WIDGETS *****
+        self.frame = ctk.CTkFrame(master=self.root)
+        self.frame.pack(pady=20, padx=60, fill="both", expand=True)
+        
+        self.label_header = ctk.CTkLabel(master=self.frame, text="Press START")
+        self.label_header.pack(pady=12, padx=10)
 
-volume_var = customtkinter.DoubleVar()
-volume_slider = customtkinter.CTkSlider(master=frame, command=volume_control, from_=0, to=1, variable=volume_var)
-volume_slider.pack(pady=5)
-volume_slider.set(0.5)
+        self.label_timer = ctk.CTkLabel(master=self.frame, font=('Arial', 20), text="00:00:00")
+        self.label_timer.pack(pady=12, padx=10)
 
-# Play and Stop button
-# Buttons that plays or stops choosen sound from a list.
+        self.button_start = ctk.CTkButton(master=self.frame, text="START", command=self.start)
+        self.button_start.pack(pady=5, padx=10)
 
-stop_button = customtkinter.CTkButton(
-    master=frame,
-    text="Stop",
-    command=stop_playback
-)
-stop_button.pack(pady=5, anchor='s')
+        self.button_pause = ctk.CTkButton(master=self.frame, text="PAUSE", command=self.pause)
+        self.button_pause.pack(pady=5, padx=10)
+        
+        self.checked_noise = ctk.StringVar(value=NOISE_LIST[0])
+        self.option_noise = ctk.CTkOptionMenu(self.frame, values=NOISE_LIST, variable=self.checked_noise, command=self.change_noise)
+        self.option_noise.pack(pady=20, padx=15)
+        self.option_noise.set("Choose background noise")
 
-play_button = customtkinter.CTkButton(
-    master=frame, 
-    text="Play",
-    command=start_playback
-)
-play_button.pack(pady=5, anchor='s')
+        self.volume_control_label = ctk.CTkLabel(master=self.frame, text="Volume", font=("Arial", 12))
+        self.volume_control_label.pack(pady=5)
+
+        self.volume_var = ctk.DoubleVar()
+        self.volume_slider = ctk.CTkSlider(master=self.frame, command=self.volume_control, from_=0, to=1, variable=self.volume_var)
+        self.volume_slider.pack(pady=5)
+        self.volume_slider.set(0.5)
+
+        self.stop_button = ctk.CTkButton(
+            master=self.frame,
+            text="Stop",
+            command=self.stop_playback
+        )
+        self.stop_button.pack(pady=5, anchor='s')
+
+        self.play_button = ctk.CTkButton(
+            master=self.frame, 
+            text="Play",
+            command=self.start_playback
+        )
+        self.play_button.pack(pady=5, anchor='s')
+
+    # ***** FUNCTIONS ****
+
+    def change_noise(self, choice):                         
+
+        if pygame.mixer.get_busy():
+            self.stop_playback()
+            self.noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[choice])
+            self.noise_sound.set_volume(self.volume)
+            self.start_playback()
+        else:
+            self.noise_sound = pygame.mixer.Sound(file=NOISE_PATH_DICT[choice])
+            self.noise_sound.set_volume(self.volume)
+
+
+    def volume_control(self, volume_sl):      
+        self.volume = volume_sl                 
+        self.noise_sound.set_volume(volume_sl)
+
+    def start_playback(self):
+        self.channel1.play(self.noise_sound, loops=-1) 
+
+    def stop_playback(self):
+        self.channel1.stop()
+
+    def end_section_sound(self, path):
+        play_end_section_sound = pygame.mixer.Sound(file=path)
+        self.channel2.play(play_end_section_sound)
+
+
+    def start(self):                           
+        if not self.timer_running:
+            self.update_timer()
+            self.timer_running = True
+
+    def pause(self):
+        if self.timer_running:
+            self.label_timer.after_cancel(self.update_time) 
+            self.timer_running = False
+  
+    def update_timer(self):                 
+        self.seconds_total, self.i
+        
+        # When changing sections, loading another title and timer  
+        if self.seconds_total <= 0 and self.i < len(TIMER_SECTIONS_DATA_LIST):
+            self.end_section_sound(TIMER_SECTIONS_DATA_LIST[self.i][2])
+            self.seconds_total = TIMER_SECTIONS_DATA_LIST[self.i][1]
+            self.section_name = TIMER_SECTIONS_DATA_LIST[self.i][0]
+
+            # Stop sound while rest section and play again while 2nd focus session.
+            if pygame.mixer.get_busy():
+                if self.section_name == TIMER_SECTIONS_DATA_LIST[2][0]: # Rest                
+                    self.channel1.pause()
+                elif self.section_name == TIMER_SECTIONS_DATA_LIST[3][0]: # 2nd focus session
+                    self.channel1.unpause()
+
+            self.label_header.configure(text=self.section_name)
+            self.i += 1
+
+        if self.seconds_total <= 0:
+            self.channel1.stop()
+            self.end_section_sound(FINISH_SOUND_PATH)##################################END
+            EndApp(root)
+
+            # leave only ending text in the self.frame
+            # self.label_header.pack_forget()
+            # self.play_button.pack_forget()
+            # self.stop_button.pack_forget()
+            # self.volume_slider.pack_forget()
+            # self.volume_control_label.pack_forget()
+            # self.option_noise.pack_forget()
+            # self.button_start.pack_forget()
+            # self.button_pause.pack_forget()
+        else: # Updating timer
+            mins, secs = divmod(self.seconds_total, 60)
+            hs, mins = divmod(mins, 60)
+            timeformat = '{:02d}:{:02d}:{:02d}'.format(hs, mins, secs)
+            self.label_timer.configure(text=timeformat)
+            self.seconds_total -= 1
+
+            # variable will be used in pause and start timer            
+            self.update_time = self.label_timer.after(1000, self.update_timer)
+
+class EndApp:
+    
+    def __init__(self, root):
+        self.root = root
+        self.build_end_screen()
+
+    def build_end_screen(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        self.frame = ctk.CTkFrame(master=self.root)
+        self.frame.pack(pady=60, padx=60, fill="both", expand=True)
+
+        self.reward_message_str = random.choice(END_MESSAGES_LIST)
+
+        self.reward_message_widget = ctk.CTkLabel(master=self.frame, text=self.reward_message_str, font=('Arial', 35))
+        self.reward_message_widget.pack(pady=50, padx=10)
+
+        self.button_restart = ctk.CTkButton(master=self.frame, text="RESTART", command=self.restart)
+        self.button_restart.pack(side="bottom")
+
+    def restart(self):
+        print("restart function")
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        MainApp(self.root) 
 
 # ***** MAINLOOP *****
-root.mainloop()
+
+if __name__ == "__main__":
+    app = MainApp(root)
+    root.mainloop()
