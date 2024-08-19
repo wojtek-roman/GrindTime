@@ -26,12 +26,8 @@ Program plays sounds and displays remaining time for every step of our work sess
 
 # ---------------------------------------------------------------
 # PROBLEMS TO SOLVE:
-#   - START button after end of section should change to START AGAIN after whole session.
 #   - USER CAN SET TIME but default should be always 45-5-45 min (time to think is always default)
 #   - DATABASE storing USER and his KIND OF ACTIVITY, DATE, TIME OF SESSIONS
 #   - END button that ends all work and saves worktime to database.
 #   - EXIT button that closes program
-#   - looks:
-#        * adding some images at the end message (emojis don't look well)
-#        * change of widgets after sections
 # ---------------------------------------------------------------
